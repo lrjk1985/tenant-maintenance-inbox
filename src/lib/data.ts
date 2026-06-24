@@ -101,27 +101,30 @@ export async function getDashboardData(
   let selectedTickets: MaintenanceTicket[] = [];
 
   if (selectedConversation) {
-    const { data: messageData, error: messageError } = await supabase
-      .from("whatsapp_messages")
-      .select(MESSAGE_SELECT)
-      .eq("conversation_id", selectedConversation.id)
-      .order("created_at", { ascending: false })
-      .limit(MESSAGE_PAGE_SIZE);
+    const [messageResult, selectedTicketResult] = await Promise.all([
+      supabase
+        .from("whatsapp_messages")
+        .select(MESSAGE_SELECT)
+        .eq("conversation_id", selectedConversation.id)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE),
+      supabase
+        .from("maintenance_tickets")
+        .select(TICKET_SELECT)
+        .eq("source_conversation_id", selectedConversation.id)
+        .order("updated_at", { ascending: false }),
+    ]);
+
+    const { data: messageData, error: messageError } = messageResult;
+    const { data: selectedTicketData, error: selectedTicketError } = selectedTicketResult;
 
     if (messageError) {
       setupIssues.push(messageError.message);
     }
 
-    messages = await addSignedMediaUrls(
-      supabase,
+    messages = addLazyMediaUrls(
       [...((messageData as WhatsAppMessage[] | null) ?? [])].reverse(),
     );
-
-    const { data: selectedTicketData, error: selectedTicketError } = await supabase
-      .from("maintenance_tickets")
-      .select(TICKET_SELECT)
-      .eq("source_conversation_id", selectedConversation.id)
-      .order("updated_at", { ascending: false });
 
     if (selectedTicketError) {
       setupIssues.push(selectedTicketError.message);
@@ -291,23 +294,19 @@ export async function getHistoryData(): Promise<HistoryData> {
   };
 }
 
-async function addSignedMediaUrls(
-  supabase: SupabaseClient,
-  messages: WhatsAppMessage[],
-) {
-  return Promise.all(
-    messages.map(async (message) => {
-      if (!message.storage_path) {
-        return { ...message, media_url: null };
-      }
+function addLazyMediaUrls(messages: WhatsAppMessage[]) {
+  return messages.map((message) => {
+    if (!message.storage_path) {
+      return { ...message, media_url: null };
+    }
 
-      const { data } = await supabase.storage
-        .from(message.storage_bucket ?? "maintenance-media")
-        .createSignedUrl(message.storage_path, 60 * 60);
+    const params = new URLSearchParams({
+      bucket: message.storage_bucket ?? "maintenance-media",
+      path: message.storage_path,
+    });
 
-      return { ...message, media_url: data?.signedUrl ?? null };
-    }),
-  );
+    return { ...message, media_url: `/api/media?${params.toString()}` };
+  });
 }
 
 function mergeTickets(

@@ -121,6 +121,7 @@ export default async function Home({ searchParams }: PageProps) {
                       }`}
                       href={`/?conversation=${conversation.id}`}
                       key={conversation.id}
+                      prefetch={false}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
