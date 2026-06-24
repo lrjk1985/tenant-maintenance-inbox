@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -117,6 +117,10 @@ async function requireAdminStaff() {
   return staff;
 }
 
+function revalidateDashboardSharedLookups() {
+  updateTag("dashboard-shared-lookups");
+}
+
 export async function linkConversationAction(formData: FormData) {
   const staff = await requireAuthenticatedStaff();
   const supabase = await createSupabaseServerClient();
@@ -170,6 +174,7 @@ export async function linkConversationAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect(`/?conversation=${input.conversation_id}`);
 }
 
@@ -254,6 +259,7 @@ export async function createTicketAction(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidateDashboardSharedLookups();
   redirect(`/?conversation=${input.conversation_id}`);
 }
 
@@ -312,6 +318,7 @@ export async function updateTicketAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect(
     input.return_to ??
       (input.conversation_id ? `/?conversation=${input.conversation_id}` : "/"),
@@ -384,6 +391,7 @@ export async function adminUpdateTicketAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect(input.return_to ?? "/admin?view=tickets");
 }
 
@@ -459,6 +467,7 @@ export async function replyToTenantAction(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidateDashboardSharedLookups();
   redirect(`/?conversation=${input.conversation_id}`);
 }
 
@@ -495,6 +504,7 @@ export async function createUnitAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidateDashboardSharedLookups();
   redirect("/admin?view=directory");
 }
 
@@ -534,6 +544,7 @@ export async function createTenantAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidateDashboardSharedLookups();
   redirect("/admin?view=directory");
 }
 
@@ -574,6 +585,7 @@ export async function updateTenantAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect("/admin?view=directory");
 }
 
@@ -608,6 +620,7 @@ export async function createStaffAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect("/admin");
 }
 
@@ -657,6 +670,7 @@ export async function updateStaffAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect("/admin");
 }
 
@@ -703,6 +717,7 @@ export async function removeStaffAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/tickets");
+  revalidateDashboardSharedLookups();
   redirect("/admin");
 }
 
